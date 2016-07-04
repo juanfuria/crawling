@@ -31,23 +31,23 @@
                 </div>
             </div>
         <?php } ?>
-    </div>
+        </div>
 <?php } ?>
 
 <h2>External Links [<?= count($this->sitemap->external) ?>]</h2>
 
 <div class="ui middle aligned selection divided list">
     <?php foreach ($this->sitemap->external as $url) { ?>
-        <div class="item">
-            <i class="large external share middle aligned icon"></i>
+            <div class="item">
+                <i class="large external share middle aligned icon"></i>
 
-            <div class="content">
-                <a class="header" href="<?= $url ?>"><?= $url ?></a>
+                <div class="content">
+                    <a class="header" href="<?= $url ?>"><?= $url ?></a>
+                </div>
             </div>
-        </div>
-    <?php } ?>
-</div>
-
+        <?php } ?>
+    </div>
+<div class="clear">This crawl took <?= $this->duration ?> seconds.</div>
 <?php
 include('footer.html');
 ?>

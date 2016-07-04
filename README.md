@@ -22,8 +22,7 @@ Alternatively you can deploy it to a web server that supports PHP. You can see a
  
 # Trade-offs 
 
-Now to the juicy part. This was a dirt'n'quick approach and uses a very basic recursive approach to solve the crawling. 
-That's sort of OK if the site is quite small or if you can control the max execution time of the PHP script and you're not in a hurry.
-It obviously sucks and it's not a good solution. Next step is implementing concurrent asynchronous calls and therefore eliminating the download-one-and-process-one way.
+After the first serial recursive attempt [See tag 1.0]() I felt it really needed asynchronous concurrent processing.
+Works generally well, but I still get problems with large sites if I turn the depth to more than 3. 
 
-It's not very nice the lack of feedback while the website is being crawled and, as said, works best with relatively small webs. A good one to try is `http://tobiasahlin.com/spinkit/`
+With some sites the requests are just too many and too quick, so I'm getting rate limited. I made an attempt to add a rolling window limit but it's tricky to tweak. Needs improvements.

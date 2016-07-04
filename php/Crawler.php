@@ -3,6 +3,7 @@
 include_once('URLUtils.php');
 include_once('Sitemap.php');
 include_once('LinkInfo.php');
+include_once('Requests.php');
 
 
 class Crawler
@@ -14,47 +15,62 @@ class Crawler
     private $url;
     private $depth;
     private $domain;
+    private $requests;
 
     public function __construct($url, $depth)
     {
-        $this->url = $url;
-        $this->depth = $url;
-        $this->domain = URLUtils::parseHostFromURL($url);
+        $this->sitemap = new Sitemap();
         $this->duration = 0;
+        $this->url = $url;
+        $this->depth = $depth;
+        $this->domain = URLUtils::parseHostFromURL($url);
+        $this->requests = new Requests();
     }
 
     public function crawl()
     {
         $time_start = microtime(true);
 
-        $this->sitemap = $this->recursiveCrawl($this->url, $this->depth, new Sitemap(), $this->domain);
+        $this->process([$this->url], $this->depth);
 
         $time_end = microtime(true);
         $this->duration = $time_end - $time_start;
     }
 
-    /* @var $url String
-     * @var $depth Integer
-     * @var $sitemap Sitemap
-     * @var $base_domain String
-     * @return Sitemap
-     */
-    private static function recursiveCrawl($url, $depth, $sitemap, $base_domain)
+    public function process($urls, $depth)
     {
-        if (URLUtils::URLHasFragment($url) || in_array($url, $sitemap->visited) || $depth === 0) {
-            return $sitemap;
+        if ($depth > 0) {
+            $callback = function ($data, $info) {
+                $this->extractPageInfo($this, $data, $info);
+            };
+
+            $this->requests->process($urls, $callback, $depth);
+        }
+    }
+
+    /* @var $crawler Crawler
+     * @var $page_data String
+     * @var $page_info Array
+     */
+    private static function extractPageInfo($crawler, $page_data, $page_info)
+    {
+        $url = $page_info['url'];
+        $depth = $page_info['depth'];
+
+        if (URLUtils::URLHasFragment($url) || in_array($url, $crawler->sitemap->visited) || $depth === 0) {
+            return;
         }
 
-        $sitemap->visited[] = $url;
+        $crawler->sitemap->visited[] = $url;
 
         //link information
-        $is_url_internal = ($base_domain == URLUtils::parseHostFromURL($url));
+        $is_url_internal = ($crawler->domain == URLUtils::parseHostFromURL($url));
 
         //if not internal do not visit
         if ($is_url_internal) {
             $dom = new DOMDocument('1.0');
-            @$dom->loadHTMLFile($url);
-
+            @$dom->loadHTML($page_data);
+            unset($page_data);
 
             $section = '/';
             $url_parts = explode('/', $url);
@@ -63,17 +79,19 @@ class Crawler
                 $section = $url_parts[SECTION_POSITION];
             }
 
-            $pos = count($sitemap->internal[$section]);
+            $pos = count($crawler->sitemap->internal[$section]);
             $linkInfo = new LinkInfo();
             $linkInfo->URL = $url;
 
             $title = $dom->getElementsByTagName('title');
             $linkInfo->title = $title->item(0)->nodeValue;
 
-            $sitemap->internal[$section][$pos] = $linkInfo;
+            $crawler->sitemap->internal[$section][$pos] = $linkInfo;
 
             $anchors = $dom->getElementsByTagName('a');
             $dom = NULL;
+
+            $urls = array();
 
             /* @var $anchors DOMNodeList
              * @var $element DOMNode
@@ -85,6 +103,7 @@ class Crawler
                 if (URLUtils::URLStartsWith($href, 'http') == false) {
                     //this ones we ignore
                     if (URLUtils::URLStartsWith($href, 'mailto') || URLUtils::URLStartsWith($href, 'javascript:')) {
+                        $crawler->sitemap->visited[] = $href;
                         break;
                     } //if you just used // in the href we need to resolve the protocol
                     else if (URLUtils::URLStartsWith($href, '//')) {
@@ -109,12 +128,21 @@ class Crawler
                         }
                     }
                 }
-                $sitemap = Crawler::recursiveCrawl($href, $depth - 1, $sitemap, $base_domain);
-            }
-        } else {
-            $sitemap->external[] = $url;
-        }
 
-        return $sitemap;
+                //reducing the number of calls
+                if (in_array($href, $crawler->sitemap->visited) == false && in_array($href, $urls) == false) {
+                    if ($crawler->domain != URLUtils::parseHostFromURL($href)) {
+                        $crawler->sitemap->external[] = $href;
+                        $crawler->sitemap->visited[] = $href;
+                    } else {
+                        $urls[] = $href;
+                    }
+                }
+            }
+
+            $crawler->process($urls, $depth - 1);
+        } else {
+            $crawler->sitemap->external[] = $url;
+        }
     }
 }

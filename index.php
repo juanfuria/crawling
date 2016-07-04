@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $page_template = new Template(TEMPLATE_DIR . '/list.php');
         $page_template->url = $_POST[URL_FIELD];
         $page_template->sitemap = $crawler->sitemap;
+        $page_template->duration = $crawler->duration;
 
         echo $page_template;
     } else {
