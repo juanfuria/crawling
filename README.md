@@ -22,7 +22,7 @@ Alternatively you can deploy it to a web server that supports PHP. You can see a
  
 # Trade-offs 
 
-After the first serial recursive attempt [See tag 1.0]() I felt it really needed asynchronous concurrent processing.
+After the first serial recursive attempt [See tag 1.0](https://github.com/juanfuria/crawling/tree/1.0) I felt it really needed asynchronous concurrent processing.
 Works generally well, but I still get problems with large sites if I turn the depth to more than 3. 
 
 With some sites the requests are just too many and too quick, so I'm getting rate limited. I made an attempt to add a rolling window limit but it's tricky to tweak. Needs improvements.
